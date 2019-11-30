@@ -1,0 +1,17 @@
+RR
+QUANTUM 1000
+0 Llega A prio 2
+1 Llega B prio 2
+2 Llega C prio 2
+2001 Llega D prio 2
+3001 Acaba C
+3002 Llega E prio 2
+3003 Llega F prio 2
+5001 Llega G prio 2
+5500 Acaba D
+5800 Acaba F
+5901 Acaba A
+5902 Acaba B
+5903 Acaba G
+7000 Acaba E
+7001 endSimulacion
