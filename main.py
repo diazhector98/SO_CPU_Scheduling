@@ -131,8 +131,10 @@ while line_index < len(lineas_de_archivo_de_entrada):
         funcion(evento=evento, cola_de_listos=cola_de_listos, cpu=cpu, procesos_bloqueados=procesos_bloqueados, procesos_terminados=procesos_terminados)
         if cpu.proceso != None:
             print("Proceso En CPU: ", cpu.proceso.id)
-        cola_priorizada = cola_de_listos
-        print("Cola de listos: ", cola_de_listos.getFilaIDs())
+        cola = cola_de_listos.getFila().queue
+        print("Cola de listos: ")
+        for p in cola:
+            print("Id: ", p.id, "Prioridad: ", p.prioridad)
         print("------------------------")
 
 
