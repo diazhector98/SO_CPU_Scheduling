@@ -18,6 +18,7 @@ class Proceso:
 
 class Evento:
     def __init__(self, texto):
+        self.texto = texto
         componentes = texto.split()
         self.tiempo = componentes[0]
         if componentes[1] == "Llega":
@@ -84,6 +85,7 @@ class ProcesosTerminados:
         self.procesos.append(proceso)
 
 
+
 line_index = 0
 algoritmo = lineas_de_archivo_de_entrada[line_index]
 line_index += 1
@@ -121,6 +123,14 @@ manejadores = {
 'EndSimulacion': None
 }
 
+snaps_eventos = []
+snaps_cola_de_listos = []
+snaps_cpus = []
+snaps_bloqueados = []
+snaps_terminados = []
+
+
+
 while line_index < len(lineas_de_archivo_de_entrada):
     linea = lineas_de_archivo_de_entrada[line_index]
     evento = Evento(texto=linea)
@@ -129,6 +139,14 @@ while line_index < len(lineas_de_archivo_de_entrada):
     funcion = manejadores.get(evento.tipo)
     if funcion != None:
         funcion(evento=evento, cola_de_listos=cola_de_listos, cpu=cpu, procesos_bloqueados=procesos_bloqueados, procesos_terminados=procesos_terminados)
+        snaps_eventos.append(evento.texto)
+        snaps_cola_de_listos.append(cola_de_listos.getFilaIDs())
+        if cpu.getProceso() != None:
+            snaps_cpus.append(cpu.getProceso().id)
+        else:
+            snaps_cpus.append(None)
+        snaps_bloqueados.append(procesos_bloqueados.getLista())
+        snaps_terminados.append(procesos_terminados.getProcesos())
         if cpu.proceso != None:
             print("Proceso En CPU: ", cpu.proceso.id)
         cola = cola_de_listos.getFila().queue
@@ -142,5 +160,5 @@ while line_index < len(lineas_de_archivo_de_entrada):
 
 from texttable import Texttable
 t = Texttable()
-t.add_rows([['Name', 'Age'], ['Alice', 24], ['Bob', 19]])
+t.add_rows([['Evento', 'Cola de listos', 'CPU', 'Bloqueados', 'Terminados']])
 print(t.draw())
