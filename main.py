@@ -81,6 +81,11 @@ class ProcesosTerminados:
         self.procesos = []
     def getProcesos(self):
         return self.procesos
+    def getProcesosIds(self):
+        ids = []
+        for proceso in self.procesos:
+            ids.append(proceso.id)
+        return ids
     def insertar(self, proceso):
         self.procesos.append(proceso)
 
@@ -105,9 +110,12 @@ def manejarLlegada(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_te
         cola_de_listos.insertar(evento.proceso)
 def manejarAcaba(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_terminados):
     print(evento.proceso.id)
+    proceso_terminado = cpu.getProceso()
     cpu.sacarProceso()
     if cola_de_listos.getFila().qsize() != 0:
-        cpu.insertarProceso(cola_de_listos.pop())
+        proceso_siquiente = cola_de_listos.pop()
+        cpu.insertarProceso(proceso_siquiente)
+    procesos_terminados.insertar(proceso_terminado)
 def manejarStartIO(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_terminados):
     print(evento.proceso.id)
 def manejarEndIO(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_terminados):
@@ -146,7 +154,7 @@ while line_index < len(lineas_de_archivo_de_entrada):
         else:
             snaps_cpus.append(None)
         snaps_bloqueados.append(procesos_bloqueados.getLista())
-        snaps_terminados.append(procesos_terminados.getProcesos())
+        snaps_terminados.append(procesos_terminados.getProcesosIds())
         if cpu.proceso != None:
             print("Proceso En CPU: ", cpu.proceso.id)
         cola = cola_de_listos.getFila().queue
