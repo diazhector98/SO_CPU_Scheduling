@@ -47,7 +47,7 @@ class ColaDeListos:
         return self.fila
     def getFilaIDs(self):
         ids = []
-        for proceso in self.filaSinPrioridades:
+        for proceso in self.fila.queue:
             ids.append(proceso.id)
         return ids
     def insertar(self, proceso):
