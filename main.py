@@ -160,5 +160,18 @@ while line_index < len(lineas_de_archivo_de_entrada):
 
 from texttable import Texttable
 t = Texttable()
-t.add_rows([['Evento', 'Cola de listos', 'CPU', 'Bloqueados', 'Terminados']])
+table_rows = []
+table_rows.append(['Evento', 'Cola de listos', 'CPU', 'Bloqueados', 'Terminados'])
+row_index = 0
+while row_index < len(snaps_eventos):
+    row = []
+    row.append(snaps_eventos[row_index])
+    row.append(snaps_cola_de_listos[row_index])
+    row.append(snaps_cpus[row_index])
+    row.append(snaps_bloqueados[row_index])
+    row.append(snaps_terminados[row_index])
+    table_rows.append(row)
+    row_index += 1
+
+t.add_rows(table_rows)
 print(t.draw())
