@@ -1,3 +1,5 @@
+import queue as Q
+
 nombre_de_archivo = 'entrada.txt'
 
 archivo_de_entrada = open(nombre_de_archivo, 'r')
@@ -102,7 +104,7 @@ def manejarLlegada(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_te
 def manejarAcaba(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_terminados):
     print(evento.proceso.id)
     cpu.sacarProceso()
-    if len(cola_de_listos.getFila()) != 0:
+    if cola_de_listos.getFila().qsize() != 0:
         cpu.insertarProceso(cola_de_listos.pop())
 def manejarStartIO(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_terminados):
     print(evento.proceso.id)
