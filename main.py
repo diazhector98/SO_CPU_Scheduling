@@ -139,3 +139,8 @@ while line_index < len(lineas_de_archivo_de_entrada):
 
 
     line_index += 1
+
+from texttable import Texttable
+t = Texttable()
+t.add_rows([['Name', 'Age'], ['Alice', 24], ['Bob', 19]])
+print(t.draw())
