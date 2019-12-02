@@ -176,10 +176,14 @@ def manejarEndIO(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_term
     print(evento.proceso.id)
     proceso_terminado_io = procesos_bloqueados.getProcesoConId(evento.proceso.id)
     proceso_terminado_io.setEndIO(evento.tiempo)
-    print("Proceso terminado", proceso_terminado_io.id)
     procesos_bloqueados.removeProceso(proceso_terminado_io)
-    cola_de_listos.insertar(proceso_terminado_io)
-    #Falta manejar si no hay nada en el CPU!!!
+    if cpu.getProceso() == None:
+        #No hay proceso en el CPU
+        proceso_terminado_io.setTiempoLlegadaCPU(evento.tiempo)
+        cpu.insertarProceso(proceso_terminado_io)
+    else:
+        #Si hay proceso en el cpu
+        cola_de_listos.insertar(proceso_terminado_io)
 
 
 
