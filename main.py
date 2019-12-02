@@ -9,35 +9,47 @@ archivo_de_entrada.close()
 
 
 class Proceso:
-    def __init__(self, id, prioridad):
+    def __init__(self, id, prioridad, tiempoLlegada):
         self.id = id
         self.prioridad = prioridad
+        self.tiempoLlegada = tiempoLlegada
+        self.tiempoTerminacion = 0
+        self.tiempoCPU = 0
+        self.tiempoEspera = 0
+        self.turnaround = 0
+        self.tiempoIO = 0
         return
     def __lt__(self, other):
         return self.prioridad < other.prioridad
+    def setTiempoLlegada(self, tiempoLlegada):
+        self.tiempoLlegada = tiempoLlegada
+    def setTiempoTerminacion(self, tiempoTerminacion):
+        self.tiempoTerminacion = tiempoTerminacion
 
 class Evento:
-    def __init__(self, texto):
+    def __init__(self, texto, proceso):
         self.texto = texto
         componentes = texto.split()
         self.tiempo = componentes[0]
         if componentes[1] == "Llega":
             self.tipo = "Llegada"
-            self.proceso = Proceso(id=componentes[2], prioridad=componentes[4])
+            self.proceso = Proceso(id=componentes[2], prioridad=componentes[4], tiempoLlegada=self.tiempo)
         elif componentes[1] == "quantum":
             self.tipo = "Quantum"
         elif componentes[1] == "Acaba":
             self.tipo = "Acaba"
-            self.proceso = Proceso(id=componentes[2], prioridad=None)
+            self.proceso = proceso
         elif componentes[1] == "startI/O":
-            self.tipo = "StartI/0"
-            self.proceso = Proceso(id=componentes[2], prioridad=None)
+            self.tipo = "StartI/O"
+            self.proceso = proceso
         elif componentes[1] == "endI/O":
             self.tipo = "EndI/0"
-            self.proceso = Proceso(id=componentes[2], prioridad=None)
+            self.proceso = proceso
         elif componentes[1] == "endSimulacion":
             self.tipo = "EndSimulacion"
-
+            self.proceso = None
+    def getProceso(self):
+        return self.proceso
 
 class ColaDeListos:
     def __init__(self):
@@ -73,8 +85,21 @@ class ProcesosBloqueados:
         self.procesos = []
     def getLista(self):
         return self.procesos
+    def getListaIds(self):
+        ids = []
+        for proceso in self.procesos:
+            ids.append(proceso.id)
+        return ids
     def insertar(self, proceso):
         self.procesos.append(proceso)
+    def getProcesoConId(self, id):
+        for proceso in self.procesos:
+            if proceso.id == id:
+                return proceso
+        return None
+    def removeProceso(self, proceso):
+        self.procesos.remove(proceso)
+
 
 class ProcesosTerminados:
     def __init__(self):
@@ -84,7 +109,8 @@ class ProcesosTerminados:
     def getProcesosIds(self):
         ids = []
         for proceso in self.procesos:
-            ids.append(proceso.id)
+            if proceso != None:
+                ids.append(proceso.id)
         return ids
     def insertar(self, proceso):
         self.procesos.append(proceso)
@@ -118,8 +144,21 @@ def manejarAcaba(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_term
     procesos_terminados.insertar(proceso_terminado)
 def manejarStartIO(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_terminados):
     print(evento.proceso.id)
+    ##Sacar procesos del CPU y ponerlo en la lista de procesos bloqueados
+    proceso = cpu.getProceso()
+    cpu.sacarProceso()
+    procesos_bloqueados.insertar(proceso)
+    if cola_de_listos.getFila().qsize() != 0:
+        proceso_siquiente = cola_de_listos.pop()
+        cpu.insertarProceso(proceso_siquiente)
+    ##Poner el procesos con mayor prioridad de la cola de listos en el cpu
 def manejarEndIO(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_terminados):
     print(evento.proceso.id)
+    proceso_terminado_io = procesos_bloqueados.getProcesoConId(evento.proceso.id)
+    print("Proceso terminado", proceso_terminado_io.id)
+    procesos_bloqueados.removeProceso(proceso_terminado_io)
+    cola_de_listos.insertar(proceso_terminado_io)
+
 
 
 
@@ -138,10 +177,23 @@ snaps_bloqueados = []
 snaps_terminados = []
 
 
+procesos = []
 
 while line_index < len(lineas_de_archivo_de_entrada):
     linea = lineas_de_archivo_de_entrada[line_index]
-    evento = Evento(texto=linea)
+    linea_componentes = linea.split()
+    proceso_id = None
+    proceso = None
+    if len(linea_componentes) >= 3:
+        proceso_id = linea_componentes[2]
+        for pro in procesos:
+            if pro.id == proceso_id:
+                proceso = pro
+
+    evento = Evento(texto=linea, proceso=proceso)
+
+    if proceso == None:
+        procesos.append(evento.getProceso())
 
     print("Evento: " , linea)
     funcion = manejadores.get(evento.tipo)
@@ -153,23 +205,16 @@ while line_index < len(lineas_de_archivo_de_entrada):
             snaps_cpus.append(cpu.getProceso().id)
         else:
             snaps_cpus.append(None)
-        snaps_bloqueados.append(procesos_bloqueados.getLista())
+        snaps_bloqueados.append(procesos_bloqueados.getListaIds())
         snaps_terminados.append(procesos_terminados.getProcesosIds())
-        if cpu.proceso != None:
-            print("Proceso En CPU: ", cpu.proceso.id)
-        cola = cola_de_listos.getFila().queue
-        print("Cola de listos: ")
-        for p in cola:
-            print("Id: ", p.id, "Prioridad: ", p.prioridad)
-        print("------------------------")
 
 
     line_index += 1
 
 from texttable import Texttable
-t = Texttable()
-table_rows = []
-table_rows.append(['Evento', 'Cola de listos', 'CPU', 'Bloqueados', 'Terminados'])
+t1 = Texttable()
+table1_rows = []
+table1_rows.append(['Evento', 'Cola de listos', 'CPU', 'Bloqueados', 'Terminados'])
 row_index = 0
 while row_index < len(snaps_eventos):
     row = []
@@ -178,8 +223,21 @@ while row_index < len(snaps_eventos):
     row.append(snaps_cpus[row_index])
     row.append(snaps_bloqueados[row_index])
     row.append(snaps_terminados[row_index])
-    table_rows.append(row)
+    table1_rows.append(row)
     row_index += 1
 
-t.add_rows(table_rows)
-print(t.draw())
+t1.add_rows(table1_rows)
+print(t1.draw())
+
+t2 = Texttable()
+table2_rows = []
+table2_rows.append(['Proceso', 'Tiempo de llegada', 'Tiempo de terminacion', 'Tiempo de CPU', 'Tiempo de espera', 'Turnaround', 'Tiempo de I/0'])
+
+for p in procesos:
+    if p != None:
+        row = [p.id, p.tiempoLlegada, p.tiempoTerminacion, p.tiempoCPU, p.tiempoEspera, p.turnaround, p.tiempoIO]
+        table2_rows.append(row)
+
+
+t2.add_rows(table2_rows)
+print(t2.draw())

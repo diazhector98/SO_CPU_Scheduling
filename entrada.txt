@@ -4,12 +4,14 @@ QUANTUM 1000
 1 Llega B prio 1
 2 Llega C prio 5
 2001 Llega D prio 2
-3001 Acaba A
+2500 startI/O A
+2600 endI/O A
+2700 Acaba B
+3001 Acaba D
 3002 Llega E prio 2
 3003 Llega F prio 3
 5001 Llega G prio 4
-5500 Acaba B
-5800 Acaba D
+5800 Acaba A
 5901 Acaba E
 5902 Acaba F
 5903 Acaba G
