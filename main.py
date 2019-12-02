@@ -21,6 +21,12 @@ class Proceso:
         return
     def __lt__(self, other):
         return self.prioridad < other.prioridad
+
+    def setTiempoLlegadaCPU(self, tiempo):
+        self.tiempoLlegadaCPU = tiempo
+    def setTiempoTerminaCPU(self, tiempo):
+        self.tiempoTerminaCPU = tiempo
+        self.tiempoCPU += (self.tiempoTerminaCPU-self.tiempoLlegadaCPU)
     def setStartIO(self, tiempo):
         self.startIOTiempo = tiempo
     def setEndIO(self, tiempo):
@@ -136,27 +142,34 @@ procesos_terminados = ProcesosTerminados()
 
 def manejarLlegada(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_terminados):
     if cpu.proceso == None:
+        evento.proceso.setTiempoLlegadaCPU(evento.tiempo)
         cpu.insertarProceso(evento.proceso)
     else:
         cola_de_listos.insertar(evento.proceso)
 def manejarAcaba(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_terminados):
     print(evento.proceso.id)
     proceso_terminado = cpu.getProceso()
+    proceso_terminado.setTiempoTerminaCPU(evento.tiempo)
     proceso.setTiempoTerminacion(evento.tiempo)
     cpu.sacarProceso()
     if cola_de_listos.getFila().qsize() != 0:
         proceso_siquiente = cola_de_listos.pop()
+        print(proceso_siquiente)
+        proceso_siquiente.setTiempoLlegadaCPU(evento.tiempo)
         cpu.insertarProceso(proceso_siquiente)
     procesos_terminados.insertar(proceso_terminado)
 def manejarStartIO(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_terminados):
     print(evento.proceso.id)
     ##Sacar procesos del CPU y ponerlo en la lista de procesos bloqueados
     proceso = cpu.getProceso()
+    proceso.setTiempoTerminaCPU(evento.tiempo)
     proceso.setStartIO(evento.tiempo)
     cpu.sacarProceso()
     procesos_bloqueados.insertar(proceso)
     if cola_de_listos.getFila().qsize() != 0:
         proceso_siquiente = cola_de_listos.pop()
+        print(proceso_siquiente)
+        proceso_siquiente.setTiempoLlegadaCPU(evento.tiempo)
         cpu.insertarProceso(proceso_siquiente)
     ##Poner el procesos con mayor prioridad de la cola de listos en el cpu
 def manejarEndIO(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_terminados):
@@ -166,6 +179,7 @@ def manejarEndIO(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_term
     print("Proceso terminado", proceso_terminado_io.id)
     procesos_bloqueados.removeProceso(proceso_terminado_io)
     cola_de_listos.insertar(proceso_terminado_io)
+    #Falta manejar si no hay nada en el CPU!!!
 
 
 
@@ -243,7 +257,8 @@ table2_rows.append(['Proceso', 'Tiempo de llegada', 'Tiempo de terminacion', 'Ti
 
 for p in procesos:
     if p != None:
-        row = [p.id, p.tiempoLlegada, p.tiempoTerminacion, p.tiempoCPU, p.tiempoEspera, p.turnaround, p.tiempoIO]
+        tiempo_retorno = p.tiempoTerminacion-p.tiempoLlegada
+        row = [p.id, p.tiempoLlegada, p.tiempoTerminacion, p.tiempoCPU,tiempo_retorno - p.tiempoCPU - p.tiempoIO, tiempo_retorno, p.tiempoIO]
         table2_rows.append(row)
 
 
