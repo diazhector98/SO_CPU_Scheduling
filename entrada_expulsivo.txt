@@ -1,0 +1,9 @@
+RR
+QUANTUM 1000
+0 Llega A prio 2
+1 Llega B prio 1
+2 Llega C prio 5
+3 Acaba B
+4 Acaba A
+5 Acaba C
+7001 endSimulacion
