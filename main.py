@@ -21,6 +21,11 @@ class Proceso:
         return
     def __lt__(self, other):
         return self.prioridad < other.prioridad
+    def setStartIO(self, tiempo):
+        self.startIOTiempo = tiempo
+    def setEndIO(self, tiempo):
+        self.endIOTiempo = tiempo
+        self.tiempoIO += (self.endIOTiempo - self.startIOTiempo)
     def setTiempoLlegada(self, tiempoLlegada):
         self.tiempoLlegada = tiempoLlegada
     def setTiempoTerminacion(self, tiempoTerminacion):
@@ -30,7 +35,7 @@ class Evento:
     def __init__(self, texto, proceso):
         self.texto = texto
         componentes = texto.split()
-        self.tiempo = componentes[0]
+        self.tiempo = int(componentes[0])
         if componentes[1] == "Llega":
             self.tipo = "Llegada"
             self.proceso = Proceso(id=componentes[2], prioridad=componentes[4], tiempoLlegada=self.tiempo)
@@ -137,6 +142,7 @@ def manejarLlegada(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_te
 def manejarAcaba(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_terminados):
     print(evento.proceso.id)
     proceso_terminado = cpu.getProceso()
+    proceso.setTiempoTerminacion(evento.tiempo)
     cpu.sacarProceso()
     if cola_de_listos.getFila().qsize() != 0:
         proceso_siquiente = cola_de_listos.pop()
@@ -146,6 +152,7 @@ def manejarStartIO(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_te
     print(evento.proceso.id)
     ##Sacar procesos del CPU y ponerlo en la lista de procesos bloqueados
     proceso = cpu.getProceso()
+    proceso.setStartIO(evento.tiempo)
     cpu.sacarProceso()
     procesos_bloqueados.insertar(proceso)
     if cola_de_listos.getFila().qsize() != 0:
@@ -155,6 +162,7 @@ def manejarStartIO(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_te
 def manejarEndIO(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_terminados):
     print(evento.proceso.id)
     proceso_terminado_io = procesos_bloqueados.getProcesoConId(evento.proceso.id)
+    proceso_terminado_io.setEndIO(evento.tiempo)
     print("Proceso terminado", proceso_terminado_io.id)
     procesos_bloqueados.removeProceso(proceso_terminado_io)
     cola_de_listos.insertar(proceso_terminado_io)
