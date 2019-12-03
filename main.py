@@ -77,13 +77,29 @@ class ColaDeListos:
         self.filaSinPrioridades.append(proceso)
         self.fila.put(proceso)
     def pop(self):
-        self.filaSinPrioridades.pop()
-        return self.fila.get()
+        proceso = self.fila.get()
+        for p in self.filaSinPrioridades:
+            if p == proceso:
+                self.filaSinPrioridades.remove(p)
+        return proceso
     def estaProceso(self, proceso):
         for p in self.filaSinPrioridades:
             if p == proceso:
                 return True
         return False
+    def quitarTodosLosProcesosDeLaColaPriorizada(self):
+        while not self.fila.empty():
+            self.fila.get(False)
+    def quitarProceso(self, proceso):
+        if self.estaProceso(proceso):
+            index = 0
+            while self.filaSinPrioridades[index] != proceso:
+                index += 1
+            self.filaSinPrioridades.pop(index)
+            self.quitarTodosLosProcesosDeLaColaPriorizada()
+            for p in self.filaSinPrioridades:
+                self.fila.put(p)
+
 
 class CPU:
     def __init__(self):
@@ -162,6 +178,7 @@ def manejarAcaba(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_term
     if cola_de_listos.estaProceso(proceso):
         print("Proceso acabado esta en Cola de Listos")
         proceso.setTiempoTerminacion(evento.tiempo)
+        cola_de_listos.quitarProceso(proceso)
     elif procesos_bloqueados.estaProceso(proceso):
         print("Proceso acabado esta en procesos bloqueados(En I/0)")
         proceso.setTiempoTerminacion(evento.tiempo)
@@ -176,7 +193,7 @@ def manejarAcaba(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_term
             proceso_siquiente = cola_de_listos.pop()
             proceso_siquiente.setTiempoLlegadaCPU(evento.tiempo)
             cpu.insertarProceso(proceso_siquiente)
-        procesos_terminados.insertar(proceso_terminado)
+    procesos_terminados.insertar(proceso)
 
 def manejarStartIO(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_terminados):
     ##Sacar procesos del CPU y ponerlo en la lista de procesos bloqueados
