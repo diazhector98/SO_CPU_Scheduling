@@ -147,19 +147,16 @@ def manejarLlegada(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_te
     else:
         cola_de_listos.insertar(evento.proceso)
 def manejarAcaba(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_terminados):
-    print(evento.proceso.id)
     proceso_terminado = cpu.getProceso()
     proceso_terminado.setTiempoTerminaCPU(evento.tiempo)
     proceso.setTiempoTerminacion(evento.tiempo)
     cpu.sacarProceso()
     if cola_de_listos.getFila().qsize() != 0:
         proceso_siquiente = cola_de_listos.pop()
-        print(proceso_siquiente)
         proceso_siquiente.setTiempoLlegadaCPU(evento.tiempo)
         cpu.insertarProceso(proceso_siquiente)
     procesos_terminados.insertar(proceso_terminado)
 def manejarStartIO(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_terminados):
-    print(evento.proceso.id)
     ##Sacar procesos del CPU y ponerlo en la lista de procesos bloqueados
     proceso = cpu.getProceso()
     proceso.setTiempoTerminaCPU(evento.tiempo)
@@ -168,12 +165,10 @@ def manejarStartIO(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_te
     procesos_bloqueados.insertar(proceso)
     if cola_de_listos.getFila().qsize() != 0:
         proceso_siquiente = cola_de_listos.pop()
-        print(proceso_siquiente)
         proceso_siquiente.setTiempoLlegadaCPU(evento.tiempo)
         cpu.insertarProceso(proceso_siquiente)
     ##Poner el procesos con mayor prioridad de la cola de listos en el cpu
 def manejarEndIO(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_terminados):
-    print(evento.proceso.id)
     proceso_terminado_io = procesos_bloqueados.getProcesoConId(evento.proceso.id)
     proceso_terminado_io.setEndIO(evento.tiempo)
     procesos_bloqueados.removeProceso(proceso_terminado_io)
@@ -221,7 +216,6 @@ while line_index < len(lineas_de_archivo_de_entrada):
     if proceso == None:
         procesos.append(evento.getProceso())
 
-    print("Evento: " , linea)
     funcion = manejadores.get(evento.tipo)
     if funcion != None:
         funcion(evento=evento, cola_de_listos=cola_de_listos, cpu=cpu, procesos_bloqueados=procesos_bloqueados, procesos_terminados=procesos_terminados)
