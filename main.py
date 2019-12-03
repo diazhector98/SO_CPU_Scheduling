@@ -163,7 +163,10 @@ def manejarAcaba(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_term
         print("Proceso acabado esta en Cola de Listos")
         proceso.setTiempoTerminacion(evento.tiempo)
     elif procesos_bloqueados.estaProceso(proceso):
-        print("Proceso acabado esta en procesos bloqueados")
+        print("Proceso acabado esta en procesos bloqueados(En I/0)")
+        proceso.setTiempoTerminacion(evento.tiempo)
+        proceso.setEndIO(evento.tiempo)
+        procesos_bloqueados.removeProceso(proceso_terminado_io)
     else:
         proceso_terminado = cpu.getProceso()
         proceso_terminado.setTiempoTerminaCPU(evento.tiempo)
