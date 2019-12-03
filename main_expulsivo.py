@@ -41,6 +41,10 @@ class Evento:
     def __init__(self, texto, proceso):
         self.texto = texto
         componentes = texto.split()
+        self.proceso = None
+        self.tipo = None
+        if len(componentes) < 2:
+            return
         self.tiempo = int(componentes[0])
         if componentes[1] == "Llega":
             self.tipo = "Llegada"
@@ -60,7 +64,9 @@ class Evento:
             self.tipo = "EndSimulacion"
             self.proceso = None
     def getProceso(self):
-        return self.proceso
+        if self.proceso != None:
+            return self.proceso
+        return None
 
 class ColaDeListos:
     def __init__(self):
@@ -232,7 +238,7 @@ while line_index < len(lineas_de_archivo_de_entrada):
 
     evento = Evento(texto=linea, proceso=proceso)
 
-    if proceso == None:
+    if proceso == None and evento.getProceso() != None:
         procesos.append(evento.getProceso())
 
     print("Evento: " , linea)
