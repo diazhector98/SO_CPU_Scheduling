@@ -79,6 +79,11 @@ class ColaDeListos:
     def pop(self):
         self.filaSinPrioridades.pop()
         return self.fila.get()
+    def estaProceso(self, proceso):
+        for p in self.filaSinPrioridades:
+            if p == proceso:
+                return True
+        return False
 
 class CPU:
     def __init__(self):
@@ -110,6 +115,11 @@ class ProcesosBloqueados:
         return None
     def removeProceso(self, proceso):
         self.procesos.remove(proceso)
+    def estaProceso(self, proceso):
+        for p in self.procesos:
+            if p == proceso:
+                return True
+        return False
 
 
 class ProcesosTerminados:
@@ -146,16 +156,25 @@ def manejarLlegada(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_te
         cpu.insertarProceso(evento.proceso)
     else:
         cola_de_listos.insertar(evento.proceso)
+
 def manejarAcaba(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_terminados):
-    proceso_terminado = cpu.getProceso()
-    proceso_terminado.setTiempoTerminaCPU(evento.tiempo)
-    proceso.setTiempoTerminacion(evento.tiempo)
-    cpu.sacarProceso()
-    if cola_de_listos.getFila().qsize() != 0:
-        proceso_siquiente = cola_de_listos.pop()
-        proceso_siquiente.setTiempoLlegadaCPU(evento.tiempo)
-        cpu.insertarProceso(proceso_siquiente)
-    procesos_terminados.insertar(proceso_terminado)
+    proceso = evento.proceso
+    if cola_de_listos.estaProceso(proceso):
+        print("Proceso acabado esta en Cola de Listos")
+        proceso.setTiempoTerminacion(evento.tiempo)
+    elif procesos_bloqueados.estaProceso(proceso):
+        print("Proceso acabado esta en procesos bloqueados")
+    else:
+        proceso_terminado = cpu.getProceso()
+        proceso_terminado.setTiempoTerminaCPU(evento.tiempo)
+        proceso.setTiempoTerminacion(evento.tiempo)
+        cpu.sacarProceso()
+        if cola_de_listos.getFila().qsize() != 0:
+            proceso_siquiente = cola_de_listos.pop()
+            proceso_siquiente.setTiempoLlegadaCPU(evento.tiempo)
+            cpu.insertarProceso(proceso_siquiente)
+        procesos_terminados.insertar(proceso_terminado)
+
 def manejarStartIO(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_terminados):
     ##Sacar procesos del CPU y ponerlo en la lista de procesos bloqueados
     proceso = cpu.getProceso()
