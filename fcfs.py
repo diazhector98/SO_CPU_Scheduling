@@ -70,7 +70,8 @@ class ColaDeListos:
         self.filaSinPrioridades.append(proceso)
         self.fila.append(proceso)
     def pop(self):
-        proceso = self.fila.pop()
+        proceso = self.fila[0]
+        self.fila.pop(0)
         for p in self.filaSinPrioridades:
             if p == proceso:
                 self.filaSinPrioridades.remove(p)

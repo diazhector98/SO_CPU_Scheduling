@@ -1,6 +1,6 @@
 import queue as Q
 
-nombre_de_archivo = 'entrada_fcfs.txt'
+nombre_de_archivo = 'entrada_expulsivo.txt'
 
 archivo_de_entrada = open(nombre_de_archivo, 'r')
 lineas_de_archivo_de_entrada = archivo_de_entrada.readlines()
