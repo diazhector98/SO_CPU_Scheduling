@@ -1,10 +1,12 @@
 import queue as Q
 
-nombre_de_archivo = 'entrada_expulsivo.txt'
+nombre_de_archivo = 'entrada_fcfs.txt'
 
 archivo_de_entrada = open(nombre_de_archivo, 'r')
 lineas_de_archivo_de_entrada = archivo_de_entrada.readlines()
 archivo_de_entrada.close()
+
+from fcfs import fcfs
 
 
 
@@ -161,9 +163,11 @@ class ProcesosTerminados:
 
 line_index = 0
 algoritmo = lineas_de_archivo_de_entrada[line_index]
+algoritmo = algoritmo.replace("\n", "")
 line_index += 1
 quantum = lineas_de_archivo_de_entrada[line_index]
 line_index += 1
+
 
 cola_de_listos = ColaDeListos()
 cpu = CPU()
@@ -269,66 +273,71 @@ snaps_terminados = []
 
 procesos = []
 
-while line_index < len(lineas_de_archivo_de_entrada):
-    linea = lineas_de_archivo_de_entrada[line_index]
-    linea_componentes = linea.split()
-    proceso_id = None
-    proceso = None
-    if len(linea_componentes) >= 3:
-        proceso_id = linea_componentes[2]
-        for pro in procesos:
-            if pro.id == proceso_id:
-                proceso = pro
+if algoritmo == "prioPreemptive":
+    print("Es esto")
+    while line_index < len(lineas_de_archivo_de_entrada):
+        linea = lineas_de_archivo_de_entrada[line_index]
+        linea_componentes = linea.split()
+        proceso_id = None
+        proceso = None
+        if len(linea_componentes) >= 3:
+            proceso_id = linea_componentes[2]
+            for pro in procesos:
+                if pro.id == proceso_id:
+                    proceso = pro
 
-    evento = Evento(texto=linea, proceso=proceso)
+        evento = Evento(texto=linea, proceso=proceso)
 
-    if proceso == None:
-        procesos.append(evento.getProceso())
-    funcion = manejadores.get(evento.tipo)
-    if funcion != None:
-        funcion(evento=evento, cola_de_listos=cola_de_listos, cpu=cpu, procesos_bloqueados=procesos_bloqueados, procesos_terminados=procesos_terminados)
-        snaps_eventos.append(evento.texto)
-        snap_cola_de_listos = cola_de_listos.getFilaIDs()
-        snap_cola_de_listos.reverse()
-        snaps_cola_de_listos.append(snap_cola_de_listos)
-        if cpu.getProceso() != None:
-            snaps_cpus.append(cpu.getProceso().id)
-        else:
-            snaps_cpus.append(None)
-        snaps_bloqueados.append(procesos_bloqueados.getListaIds())
-        snaps_terminados.append(procesos_terminados.getProcesosIds())
-
-
-    line_index += 1
-
-from texttable import Texttable
-t1 = Texttable()
-table1_rows = []
-table1_rows.append(['Evento', 'Cola de listos', 'CPU', 'Bloqueados', 'Terminados'])
-row_index = 0
-while row_index < len(snaps_eventos):
-    row = []
-    row.append(snaps_eventos[row_index])
-    row.append(snaps_cola_de_listos[row_index])
-    row.append(snaps_cpus[row_index])
-    row.append(snaps_bloqueados[row_index])
-    row.append(snaps_terminados[row_index])
-    table1_rows.append(row)
-    row_index += 1
-
-t1.add_rows(table1_rows)
-print(t1.draw())
-
-t2 = Texttable()
-table2_rows = []
-table2_rows.append(['Proceso', 'Tiempo de llegada', 'Tiempo de terminacion', 'Tiempo de CPU', 'Tiempo de espera', 'Turnaround', 'Tiempo de I/0'])
-
-for p in procesos:
-    if p != None:
-        tiempo_retorno = p.tiempoTerminacion-p.tiempoLlegada
-        row = [p.id, p.tiempoLlegada, p.tiempoTerminacion, p.tiempoCPU,tiempo_retorno - p.tiempoCPU - p.tiempoIO, tiempo_retorno, p.tiempoIO]
-        table2_rows.append(row)
+        if proceso == None:
+            procesos.append(evento.getProceso())
+        funcion = manejadores.get(evento.tipo)
+        if funcion != None:
+            funcion(evento=evento, cola_de_listos=cola_de_listos, cpu=cpu, procesos_bloqueados=procesos_bloqueados, procesos_terminados=procesos_terminados)
+            snaps_eventos.append(evento.texto)
+            snap_cola_de_listos = cola_de_listos.getFilaIDs()
+            snap_cola_de_listos.reverse()
+            snaps_cola_de_listos.append(snap_cola_de_listos)
+            if cpu.getProceso() != None:
+                snaps_cpus.append(cpu.getProceso().id)
+            else:
+                snaps_cpus.append(None)
+            snaps_bloqueados.append(procesos_bloqueados.getListaIds())
+            snaps_terminados.append(procesos_terminados.getProcesosIds())
 
 
-t2.add_rows(table2_rows)
-print(t2.draw())
+        line_index += 1
+
+    from texttable import Texttable
+    t1 = Texttable()
+    table1_rows = []
+    table1_rows.append(['Evento', 'Cola de listos', 'CPU', 'Bloqueados', 'Terminados'])
+    row_index = 0
+    while row_index < len(snaps_eventos):
+        row = []
+        row.append(snaps_eventos[row_index])
+        row.append(snaps_cola_de_listos[row_index])
+        row.append(snaps_cpus[row_index])
+        row.append(snaps_bloqueados[row_index])
+        row.append(snaps_terminados[row_index])
+        table1_rows.append(row)
+        row_index += 1
+
+    t1.add_rows(table1_rows)
+    print(t1.draw())
+
+    t2 = Texttable()
+    table2_rows = []
+    table2_rows.append(['Proceso', 'Tiempo de llegada', 'Tiempo de terminacion', 'Tiempo de CPU', 'Tiempo de espera', 'Turnaround', 'Tiempo de I/0'])
+
+    for p in procesos:
+        if p != None:
+            tiempo_retorno = p.tiempoTerminacion-p.tiempoLlegada
+            row = [p.id, p.tiempoLlegada, p.tiempoTerminacion, p.tiempoCPU,tiempo_retorno - p.tiempoCPU - p.tiempoIO, tiempo_retorno, p.tiempoIO]
+            table2_rows.append(row)
+
+
+    t2.add_rows(table2_rows)
+    print(t2.draw())
+
+elif algoritmo == "FCFS":
+    fcfs(lineas_de_archivo_de_entrada=lineas_de_archivo_de_entrada, quantum=1000)

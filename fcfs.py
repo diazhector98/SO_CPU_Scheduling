@@ -1,17 +1,8 @@
 import queue as Q
 
-nombre_de_archivo = 'entrada_expulsivo.txt'
-
-archivo_de_entrada = open(nombre_de_archivo, 'r')
-lineas_de_archivo_de_entrada = archivo_de_entrada.readlines()
-archivo_de_entrada.close()
-
-
-
 class Proceso:
-    def __init__(self, id, prioridad, tiempoLlegada):
+    def __init__(self, id, tiempoLlegada):
         self.id = id
-        self.prioridad = prioridad
         self.tiempoLlegada = tiempoLlegada
         self.tiempoTerminacion = 0
         self.tiempoCPU = 0
@@ -19,9 +10,6 @@ class Proceso:
         self.turnaround = 0
         self.tiempoIO = 0
         return
-    def __lt__(self, other):
-        return self.prioridad < other.prioridad
-
     def setTiempoLlegadaCPU(self, tiempo):
         self.tiempoLlegadaCPU = tiempo
     def setTiempoTerminaCPU(self, tiempo):
@@ -49,7 +37,7 @@ class Evento:
         self.tiempo = int(componentes[0])
         if componentes[1] == "Llega":
             self.tipo = "Llegada"
-            self.proceso = Proceso(id=componentes[2], prioridad=componentes[4], tiempoLlegada=self.tiempo)
+            self.proceso = Proceso(id=componentes[2], tiempoLlegada=self.tiempo)
         elif componentes[1] == "quantum":
             self.tipo = "Quantum"
         elif componentes[1] == "Acaba":
@@ -70,19 +58,19 @@ class Evento:
 class ColaDeListos:
     def __init__(self):
         self.filaSinPrioridades = []
-        self.fila = Q.PriorityQueue()
+        self.fila = []
     def getFila(self):
         return self.fila
     def getFilaIDs(self):
         ids = []
-        for proceso in self.fila.queue:
+        for proceso in self.fila:
             ids.append(proceso.id)
         return ids
     def insertar(self, proceso):
         self.filaSinPrioridades.append(proceso)
-        self.fila.put(proceso)
+        self.fila.append(proceso)
     def pop(self):
-        proceso = self.fila.get()
+        proceso = self.fila.pop()
         for p in self.filaSinPrioridades:
             if p == proceso:
                 self.filaSinPrioridades.remove(p)
@@ -93,8 +81,8 @@ class ColaDeListos:
                 return True
         return False
     def quitarTodosLosProcesosDeLaColaPriorizada(self):
-        while not self.fila.empty():
-            self.fila.get(False)
+        while not len(self.fila) == 0:
+            self.fila.pop()
     def quitarProceso(self, proceso):
         if self.estaProceso(proceso):
             index = 0
@@ -103,7 +91,7 @@ class ColaDeListos:
             self.filaSinPrioridades.pop(index)
             self.quitarTodosLosProcesosDeLaColaPriorizada()
             for p in self.filaSinPrioridades:
-                self.fila.put(p)
+                self.fila.append(p)
 
 
 class CPU:
@@ -158,36 +146,12 @@ class ProcesosTerminados:
         self.procesos.append(proceso)
 
 
-
-line_index = 0
-algoritmo = lineas_de_archivo_de_entrada[line_index]
-line_index += 1
-quantum = lineas_de_archivo_de_entrada[line_index]
-line_index += 1
-
-cola_de_listos = ColaDeListos()
-cpu = CPU()
-procesos_bloqueados = ProcesosBloqueados()
-procesos_terminados = ProcesosTerminados()
-
-
 def manejarLlegada(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_terminados):
     if cpu.proceso == None:
         evento.proceso.setTiempoLlegadaCPU(evento.tiempo)
         cpu.insertarProceso(evento.proceso)
     else:
-        #Checar si la prioridad del nuevo es mayor a la que esta en el CPU
-        proceso_en_cpu = cpu.getProceso()
-        proceso_nuevo = evento.proceso
-        if proceso_en_cpu.prioridad > proceso_nuevo.prioridad:
-            #Nuevo proceso tiene mayor prioridad que el del CPU
-            proceso_en_cpu.setTiempoTerminaCPU(evento.tiempo)
-            cola_de_listos.insertar(proceso_en_cpu)
-            proceso_nuevo.setTiempoLlegadaCPU(evento.tiempo)
-            cpu.insertarProceso(proceso_nuevo)
-        else:
-            #Nuevo proceso tiene menor prioridad al que está en el CPU
-            cola_de_listos.insertar(evento.proceso)
+        cola_de_listos.insertar(evento.proceso)
 
 def manejarAcaba(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_terminados):
     proceso = evento.proceso
@@ -205,7 +169,7 @@ def manejarAcaba(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_term
         proceso_terminado.setTiempoTerminaCPU(evento.tiempo)
         proceso.setTiempoTerminacion(evento.tiempo)
         cpu.sacarProceso()
-        if cola_de_listos.getFila().qsize() != 0:
+        if len(cola_de_listos.getFila()) != 0:
             proceso_siquiente = cola_de_listos.pop()
             proceso_siquiente.setTiempoLlegadaCPU(evento.tiempo)
             cpu.insertarProceso(proceso_siquiente)
@@ -221,7 +185,7 @@ def manejarStartIO(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_te
     proceso.setStartIO(evento.tiempo)
     cpu.sacarProceso()
     procesos_bloqueados.insertar(proceso)
-    if cola_de_listos.getFila().qsize() != 0:
+    if len(cola_de_listos.getFila()) != 0:
         proceso_siquiente = cola_de_listos.pop()
         proceso_siquiente.setTiempoLlegadaCPU(evento.tiempo)
         cpu.insertarProceso(proceso_siquiente)
@@ -236,20 +200,9 @@ def manejarEndIO(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_term
         #No hay proceso en el CPU
         proceso_terminado_io.setTiempoLlegadaCPU(evento.tiempo)
         cpu.insertarProceso(proceso_terminado_io)
-    elif cpu.getProceso().prioridad > proceso_terminado_io.prioridad:
-        #Si hay proceso en el cpu pero es de prioridad menor
-        proceso_en_cpu = cpu.getProceso()
-        proceso_en_cpu.setTiempoTerminaCPU(evento.tiempo)
-        cpu.sacarProceso()
-        cpu.insertarProceso(proceso_terminado_io)
-        proceso_terminado_io.setTiempoLlegadaCPU(evento.tiempo)
-        cola_de_listos.insertar(proceso_en_cpu)
     else:
         #Si hay proceso en CPU, pero su prioridad es mayor, entonces se va a la cola de listos
         cola_de_listos.insertar(proceso_terminado_io)
-
-
-
 
 
 manejadores = {
@@ -260,75 +213,86 @@ manejadores = {
 'EndSimulacion': None
 }
 
-snaps_eventos = []
-snaps_cola_de_listos = []
-snaps_cpus = []
-snaps_bloqueados = []
-snaps_terminados = []
-
-
-procesos = []
-
-while line_index < len(lineas_de_archivo_de_entrada):
-    linea = lineas_de_archivo_de_entrada[line_index]
-    linea_componentes = linea.split()
-    proceso_id = None
-    proceso = None
-    if len(linea_componentes) >= 3:
-        proceso_id = linea_componentes[2]
-        for pro in procesos:
-            if pro.id == proceso_id:
-                proceso = pro
-
-    evento = Evento(texto=linea, proceso=proceso)
-
-    if proceso == None:
-        procesos.append(evento.getProceso())
-    funcion = manejadores.get(evento.tipo)
-    if funcion != None:
-        funcion(evento=evento, cola_de_listos=cola_de_listos, cpu=cpu, procesos_bloqueados=procesos_bloqueados, procesos_terminados=procesos_terminados)
-        snaps_eventos.append(evento.texto)
-        snap_cola_de_listos = cola_de_listos.getFilaIDs()
-        snap_cola_de_listos.reverse()
-        snaps_cola_de_listos.append(snap_cola_de_listos)
-        if cpu.getProceso() != None:
-            snaps_cpus.append(cpu.getProceso().id)
-        else:
-            snaps_cpus.append(None)
-        snaps_bloqueados.append(procesos_bloqueados.getListaIds())
-        snaps_terminados.append(procesos_terminados.getProcesosIds())
-
-
+def fcfs(lineas_de_archivo_de_entrada, quantum):
+    line_index = 0
+    algoritmo = lineas_de_archivo_de_entrada[line_index]
+    algoritmo = algoritmo.replace("\n", "")
+    line_index += 1
+    quantum = lineas_de_archivo_de_entrada[line_index]
     line_index += 1
 
-from texttable import Texttable
-t1 = Texttable()
-table1_rows = []
-table1_rows.append(['Evento', 'Cola de listos', 'CPU', 'Bloqueados', 'Terminados'])
-row_index = 0
-while row_index < len(snaps_eventos):
-    row = []
-    row.append(snaps_eventos[row_index])
-    row.append(snaps_cola_de_listos[row_index])
-    row.append(snaps_cpus[row_index])
-    row.append(snaps_bloqueados[row_index])
-    row.append(snaps_terminados[row_index])
-    table1_rows.append(row)
-    row_index += 1
 
-t1.add_rows(table1_rows)
-print(t1.draw())
+    cola_de_listos = ColaDeListos()
+    cpu = CPU()
+    procesos_bloqueados = ProcesosBloqueados()
+    procesos_terminados = ProcesosTerminados()
 
-t2 = Texttable()
-table2_rows = []
-table2_rows.append(['Proceso', 'Tiempo de llegada', 'Tiempo de terminacion', 'Tiempo de CPU', 'Tiempo de espera', 'Turnaround', 'Tiempo de I/0'])
+    snaps_eventos = []
+    snaps_cola_de_listos = []
+    snaps_cpus = []
+    snaps_bloqueados = []
+    snaps_terminados = []
+    procesos = []
+    while line_index < len(lineas_de_archivo_de_entrada):
+        linea = lineas_de_archivo_de_entrada[line_index]
+        linea_componentes = linea.split()
+        proceso_id = None
+        proceso = None
+        if len(linea_componentes) >= 3:
+            proceso_id = linea_componentes[2]
+            for pro in procesos:
+                if pro.id == proceso_id:
+                    proceso = pro
 
-for p in procesos:
-    if p != None:
-        tiempo_retorno = p.tiempoTerminacion-p.tiempoLlegada
-        row = [p.id, p.tiempoLlegada, p.tiempoTerminacion, p.tiempoCPU,tiempo_retorno - p.tiempoCPU - p.tiempoIO, tiempo_retorno, p.tiempoIO]
-        table2_rows.append(row)
+        evento = Evento(texto=linea, proceso=proceso)
+
+        if proceso == None:
+            procesos.append(evento.getProceso())
+        funcion = manejadores.get(evento.tipo)
+        if funcion != None:
+            funcion(evento=evento, cola_de_listos=cola_de_listos, cpu=cpu, procesos_bloqueados=procesos_bloqueados, procesos_terminados=procesos_terminados)
+            snaps_eventos.append(evento.texto)
+            snap_cola_de_listos = cola_de_listos.getFilaIDs()
+            snap_cola_de_listos.reverse()
+            snaps_cola_de_listos.append(snap_cola_de_listos)
+            if cpu.getProceso() != None:
+                snaps_cpus.append(cpu.getProceso().id)
+            else:
+                snaps_cpus.append(None)
+            snaps_bloqueados.append(procesos_bloqueados.getListaIds())
+            snaps_terminados.append(procesos_terminados.getProcesosIds())
 
 
-t2.add_rows(table2_rows)
-print(t2.draw())
+        line_index += 1
+
+    from texttable import Texttable
+    t1 = Texttable()
+    table1_rows = []
+    table1_rows.append(['Evento', 'Cola de listos', 'CPU', 'Bloqueados', 'Terminados'])
+    row_index = 0
+    while row_index < len(snaps_eventos):
+        row = []
+        row.append(snaps_eventos[row_index])
+        row.append(snaps_cola_de_listos[row_index])
+        row.append(snaps_cpus[row_index])
+        row.append(snaps_bloqueados[row_index])
+        row.append(snaps_terminados[row_index])
+        table1_rows.append(row)
+        row_index += 1
+
+    t1.add_rows(table1_rows)
+    print(t1.draw())
+
+    t2 = Texttable()
+    table2_rows = []
+    table2_rows.append(['Proceso', 'Tiempo de llegada', 'Tiempo de terminacion', 'Tiempo de CPU', 'Tiempo de espera', 'Turnaround', 'Tiempo de I/0'])
+
+    for p in procesos:
+        if p != None:
+            tiempo_retorno = p.tiempoTerminacion-p.tiempoLlegada
+            row = [p.id, p.tiempoLlegada, p.tiempoTerminacion, p.tiempoCPU,tiempo_retorno - p.tiempoCPU - p.tiempoIO, tiempo_retorno, p.tiempoIO]
+            table2_rows.append(row)
+
+
+    t2.add_rows(table2_rows)
+    print(t2.draw())

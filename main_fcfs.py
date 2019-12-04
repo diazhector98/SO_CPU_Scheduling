@@ -1,6 +1,6 @@
 import queue as Q
 
-nombre_de_archivo = 'entrada_expulsivo.txt'
+nombre_de_archivo = 'entrada_fcfs.txt'
 
 archivo_de_entrada = open(nombre_de_archivo, 'r')
 lineas_de_archivo_de_entrada = archivo_de_entrada.readlines()
@@ -176,18 +176,7 @@ def manejarLlegada(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_te
         evento.proceso.setTiempoLlegadaCPU(evento.tiempo)
         cpu.insertarProceso(evento.proceso)
     else:
-        #Checar si la prioridad del nuevo es mayor a la que esta en el CPU
-        proceso_en_cpu = cpu.getProceso()
-        proceso_nuevo = evento.proceso
-        if proceso_en_cpu.prioridad > proceso_nuevo.prioridad:
-            #Nuevo proceso tiene mayor prioridad que el del CPU
-            proceso_en_cpu.setTiempoTerminaCPU(evento.tiempo)
-            cola_de_listos.insertar(proceso_en_cpu)
-            proceso_nuevo.setTiempoLlegadaCPU(evento.tiempo)
-            cpu.insertarProceso(proceso_nuevo)
-        else:
-            #Nuevo proceso tiene menor prioridad al que está en el CPU
-            cola_de_listos.insertar(evento.proceso)
+        cola_de_listos.insertar(evento.proceso)
 
 def manejarAcaba(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_terminados):
     proceso = evento.proceso
@@ -213,10 +202,9 @@ def manejarAcaba(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_term
 
 def manejarStartIO(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_terminados):
     ##Sacar procesos del CPU y ponerlo en la lista de procesos bloqueados
-
     proceso = cpu.getProceso()
     if proceso != evento.proceso:
-        return
+            return
     proceso.setTiempoTerminaCPU(evento.tiempo)
     proceso.setStartIO(evento.tiempo)
     cpu.sacarProceso()
@@ -236,18 +224,9 @@ def manejarEndIO(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_term
         #No hay proceso en el CPU
         proceso_terminado_io.setTiempoLlegadaCPU(evento.tiempo)
         cpu.insertarProceso(proceso_terminado_io)
-    elif cpu.getProceso().prioridad > proceso_terminado_io.prioridad:
-        #Si hay proceso en el cpu pero es de prioridad menor
-        proceso_en_cpu = cpu.getProceso()
-        proceso_en_cpu.setTiempoTerminaCPU(evento.tiempo)
-        cpu.sacarProceso()
-        cpu.insertarProceso(proceso_terminado_io)
-        proceso_terminado_io.setTiempoLlegadaCPU(evento.tiempo)
-        cola_de_listos.insertar(proceso_en_cpu)
     else:
-        #Si hay proceso en CPU, pero su prioridad es mayor, entonces se va a la cola de listos
+        #Si hay proceso en el cpu
         cola_de_listos.insertar(proceso_terminado_io)
-
 
 
 
@@ -268,38 +247,42 @@ snaps_terminados = []
 
 
 procesos = []
+print(algoritmo)
+if algoritmo == "prioNonPreemptive":
+    while line_index < len(lineas_de_archivo_de_entrada):
+        linea = lineas_de_archivo_de_entrada[line_index]
+        linea_componentes = linea.split()
+        proceso_id = None
+        proceso = None
+        if len(linea_componentes) >= 3:
+            proceso_id = linea_componentes[2]
+            for pro in procesos:
+                if pro.id == proceso_id:
+                    proceso = pro
 
-while line_index < len(lineas_de_archivo_de_entrada):
-    linea = lineas_de_archivo_de_entrada[line_index]
-    linea_componentes = linea.split()
-    proceso_id = None
-    proceso = None
-    if len(linea_componentes) >= 3:
-        proceso_id = linea_componentes[2]
-        for pro in procesos:
-            if pro.id == proceso_id:
-                proceso = pro
+        evento = Evento(texto=linea, proceso=proceso)
 
-    evento = Evento(texto=linea, proceso=proceso)
+        if proceso == None:
+            procesos.append(evento.getProceso())
 
-    if proceso == None:
-        procesos.append(evento.getProceso())
-    funcion = manejadores.get(evento.tipo)
-    if funcion != None:
-        funcion(evento=evento, cola_de_listos=cola_de_listos, cpu=cpu, procesos_bloqueados=procesos_bloqueados, procesos_terminados=procesos_terminados)
-        snaps_eventos.append(evento.texto)
-        snap_cola_de_listos = cola_de_listos.getFilaIDs()
-        snap_cola_de_listos.reverse()
-        snaps_cola_de_listos.append(snap_cola_de_listos)
-        if cpu.getProceso() != None:
-            snaps_cpus.append(cpu.getProceso().id)
-        else:
-            snaps_cpus.append(None)
-        snaps_bloqueados.append(procesos_bloqueados.getListaIds())
-        snaps_terminados.append(procesos_terminados.getProcesosIds())
+        funcion = manejadores.get(evento.tipo)
+        if funcion != None:
+            funcion(evento=evento, cola_de_listos=cola_de_listos, cpu=cpu, procesos_bloqueados=procesos_bloqueados, procesos_terminados=procesos_terminados)
+            snaps_eventos.append(evento.texto)
+            snap_cola_de_listos = cola_de_listos.getFilaIDs()
+            snap_cola_de_listos.reverse()
+            snaps_cola_de_listos.append(snap_cola_de_listos)
+            if cpu.getProceso() != None:
+                snaps_cpus.append(cpu.getProceso().id)
+            else:
+                snaps_cpus.append(None)
+            snaps_bloqueados.append(procesos_bloqueados.getListaIds())
+            snaps_terminados.append(procesos_terminados.getProcesosIds())
 
 
-    line_index += 1
+        line_index += 1
+elif algoritmo == "FCFS":
+    print("Es el otro")
 
 from texttable import Texttable
 t1 = Texttable()

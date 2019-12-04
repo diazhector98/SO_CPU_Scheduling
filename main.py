@@ -40,7 +40,12 @@ class Proceso:
 class Evento:
     def __init__(self, texto, proceso):
         self.texto = texto
+        self.proceso = None
+        self.tiempo = None
+        self.tipo = None
         componentes = texto.split()
+        if len(componentes) == 1:
+            return
         self.tiempo = int(componentes[0])
         if componentes[1] == "Llega":
             self.tipo = "Llegada"
@@ -242,39 +247,42 @@ snaps_terminados = []
 
 
 procesos = []
+print(algoritmo)
+if algoritmo == "prioNonPreemptive":
+    while line_index < len(lineas_de_archivo_de_entrada):
+        linea = lineas_de_archivo_de_entrada[line_index]
+        linea_componentes = linea.split()
+        proceso_id = None
+        proceso = None
+        if len(linea_componentes) >= 3:
+            proceso_id = linea_componentes[2]
+            for pro in procesos:
+                if pro.id == proceso_id:
+                    proceso = pro
 
-while line_index < len(lineas_de_archivo_de_entrada):
-    linea = lineas_de_archivo_de_entrada[line_index]
-    linea_componentes = linea.split()
-    proceso_id = None
-    proceso = None
-    if len(linea_componentes) >= 3:
-        proceso_id = linea_componentes[2]
-        for pro in procesos:
-            if pro.id == proceso_id:
-                proceso = pro
+        evento = Evento(texto=linea, proceso=proceso)
 
-    evento = Evento(texto=linea, proceso=proceso)
+        if proceso == None:
+            procesos.append(evento.getProceso())
 
-    if proceso == None:
-        procesos.append(evento.getProceso())
-
-    funcion = manejadores.get(evento.tipo)
-    if funcion != None:
-        funcion(evento=evento, cola_de_listos=cola_de_listos, cpu=cpu, procesos_bloqueados=procesos_bloqueados, procesos_terminados=procesos_terminados)
-        snaps_eventos.append(evento.texto)
-        snap_cola_de_listos = cola_de_listos.getFilaIDs()
-        snap_cola_de_listos.reverse()
-        snaps_cola_de_listos.append(snap_cola_de_listos)
-        if cpu.getProceso() != None:
-            snaps_cpus.append(cpu.getProceso().id)
-        else:
-            snaps_cpus.append(None)
-        snaps_bloqueados.append(procesos_bloqueados.getListaIds())
-        snaps_terminados.append(procesos_terminados.getProcesosIds())
+        funcion = manejadores.get(evento.tipo)
+        if funcion != None:
+            funcion(evento=evento, cola_de_listos=cola_de_listos, cpu=cpu, procesos_bloqueados=procesos_bloqueados, procesos_terminados=procesos_terminados)
+            snaps_eventos.append(evento.texto)
+            snap_cola_de_listos = cola_de_listos.getFilaIDs()
+            snap_cola_de_listos.reverse()
+            snaps_cola_de_listos.append(snap_cola_de_listos)
+            if cpu.getProceso() != None:
+                snaps_cpus.append(cpu.getProceso().id)
+            else:
+                snaps_cpus.append(None)
+            snaps_bloqueados.append(procesos_bloqueados.getListaIds())
+            snaps_terminados.append(procesos_terminados.getProcesosIds())
 
 
-    line_index += 1
+        line_index += 1
+elif algoritmo == "prioPreemptive":
+    print("Es el otro")
 
 from texttable import Texttable
 t1 = Texttable()
