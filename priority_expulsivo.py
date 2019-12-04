@@ -361,6 +361,11 @@ manejadores = {
 Función principal del algoritmo de priority expulsivo que
 recibe cómo parametro una arreglo de los renglones
 que se reciben en el archivo de entrada
+
+
+Se procesa cada evento y al final se imprime una tabla
+con el resumen de todos los eventos
+y un tabla con el resumen de todos los procesos
 """
 def priority_expulsivo(lineas_de_archivo_de_entrada):
         line_index = 0
