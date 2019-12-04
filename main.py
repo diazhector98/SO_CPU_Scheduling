@@ -198,6 +198,8 @@ def manejarAcaba(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_term
 def manejarStartIO(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_terminados):
     ##Sacar procesos del CPU y ponerlo en la lista de procesos bloqueados
     proceso = cpu.getProceso()
+    if proceso != evento.proceso:
+            return
     proceso.setTiempoTerminaCPU(evento.tiempo)
     proceso.setStartIO(evento.tiempo)
     cpu.sacarProceso()
@@ -208,6 +210,8 @@ def manejarStartIO(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_te
         cpu.insertarProceso(proceso_siquiente)
     ##Poner el procesos con mayor prioridad de la cola de listos en el cpu
 def manejarEndIO(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_terminados):
+    if not procesos_bloqueados.estaProceso(evento.proceso):
+        return
     proceso_terminado_io = procesos_bloqueados.getProcesoConId(evento.proceso.id)
     proceso_terminado_io.setEndIO(evento.tiempo)
     procesos_bloqueados.removeProceso(proceso_terminado_io)

@@ -230,7 +230,6 @@ def manejarEndIO(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_term
     if not procesos_bloqueados.estaProceso(evento.proceso):
         return
     proceso_terminado_io = procesos_bloqueados.getProcesoConId(evento.proceso.id)
-    print("Proceso terminado: ", proceso_terminado_io.id)
     proceso_terminado_io.setEndIO(evento.tiempo)
     procesos_bloqueados.removeProceso(proceso_terminado_io)
     if cpu.getProceso() == None:
