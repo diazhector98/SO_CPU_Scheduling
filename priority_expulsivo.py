@@ -1,4 +1,6 @@
 import queue as Q
+from texttable import Texttable
+
 
 class Proceso:
     def __init__(self, id, prioridad, tiempoLlegada):
@@ -51,7 +53,7 @@ class Evento:
             self.tipo = "StartI/O"
             self.proceso = proceso
         elif componentes[1] == "endI/O":
-            self.tipo = "EndI/0"
+            self.tipo = "EndI/O"
             self.proceso = proceso
         elif componentes[1] == "endSimulacion":
             self.tipo = "EndSimulacion"
@@ -226,11 +228,36 @@ def manejarEndIO(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_term
         #Si hay proceso en CPU, pero su prioridad es mayor, entonces se va a la cola de listos
         cola_de_listos.insertar(proceso_terminado_io)
 
+
+
+def obtenerRspuestaDelSimulador(evento):
+    if evento.tipo == "Llegada":
+        return "proceso " + evento.proceso.id + " creado"
+    elif evento.tipo == "Acaba":
+        return "Proceso " + evento.proceso.id + " terminado"
+    elif evento.tipo == "StartI/O":
+        return "Proceso " + evento.proceso.id + " startI/0"
+    elif evento.tipo == "EndI/O":
+        return "Proceso " + evento.proceso.id + " endI/0"
+
+    return "Wut"
+
+def imprimirSnap(evento, snap_cola_de_listos, cpu, snap_bloqueados, snap_terminados):
+    print(evento.texto)
+    print("\t", obtenerRspuestaDelSimulador(evento=evento))
+    table = Texttable()
+    rows = []
+    cpu_text = cpu.getProceso().id if cpu.getProceso() != None else "-"
+    rows.append(['Evento', 'Cola de listos', 'CPU', 'Bloqueados', 'Terminados'])
+    rows.append([evento.texto, snap_cola_de_listos, cpu_text, snap_bloqueados, snap_terminados])
+    table.add_rows(rows)
+    print(table.draw())
+
 manejadores = {
 'Llegada' : manejarLlegada,
 'Acaba' : manejarAcaba,
 'StartI/O': manejarStartIO,
-'EndI/0': manejarEndIO,
+'EndI/O': manejarEndIO,
 'EndSimulacion': None
 }
 
@@ -282,11 +309,17 @@ def priority_expulsivo(lineas_de_archivo_de_entrada):
                     snaps_cpus.append(None)
                 snaps_bloqueados.append(procesos_bloqueados.getListaIds())
                 snaps_terminados.append(procesos_terminados.getProcesosIds())
+                imprimirSnap(
+                evento=evento,
+                snap_cola_de_listos=cola_de_listos.getFilaIDs(),
+                cpu=cpu,
+                snap_bloqueados=procesos_bloqueados.getListaIds(),
+                snap_terminados=procesos_terminados.getProcesosIds()
+                )
 
 
             line_index += 1
 
-        from texttable import Texttable
         t1 = Texttable()
         table1_rows = []
         table1_rows.append(['Evento', 'Cola de listos', 'CPU', 'Bloqueados', 'Terminados'])
