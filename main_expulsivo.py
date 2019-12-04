@@ -292,7 +292,9 @@ while line_index < len(lineas_de_archivo_de_entrada):
     if funcion != None:
         funcion(evento=evento, cola_de_listos=cola_de_listos, cpu=cpu, procesos_bloqueados=procesos_bloqueados, procesos_terminados=procesos_terminados)
         snaps_eventos.append(evento.texto)
-        snaps_cola_de_listos.append(cola_de_listos.getFilaIDs())
+        snap_cola_de_listos = cola_de_listos.getFilaIDs()
+        snap_cola_de_listos.reverse()
+        snaps_cola_de_listos.append(snap_cola_de_listos)
         if cpu.getProceso() != None:
             snaps_cpus.append(cpu.getProceso().id)
         else:
