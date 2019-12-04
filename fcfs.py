@@ -1,6 +1,11 @@
 import queue as Q
 from texttable import Texttable
 
+"""
+Definición de la clase de Proceso
+
+Se hara un objeto de esta clase por cada proceso de la simulación
+"""
 
 class Proceso:
     def __init__(self, id, tiempoLlegada):
@@ -27,6 +32,13 @@ class Proceso:
     def setTiempoTerminacion(self, tiempoTerminacion):
         self.tiempoTerminacion = tiempoTerminacion
 
+"""
+Definición de la clase Evento
+
+Se hará un objeto de esta clase por cada evento en el log de entrada.
+Lo importante de esta clase es que almacene el tipo de evento,
+el timestamp y el proceso relacionado
+"""
 class Evento:
     def __init__(self, texto, proceso):
         self.texto = texto
@@ -57,6 +69,15 @@ class Evento:
     def getProceso(self):
         return self.proceso
 
+"""
+Definición de la clase de la Cola de listos
+
+Solo habra un objeto de esta clase que mantenga las colas/filas de los Procesos
+en la cola de listos.
+Tiene dos atributos esta clase, una lista que contiene objetos de
+tipo Proceso, y un arreglo que solo contiene los IDs (Esto para que sea más sencillo
+verificar la existencia de un proceso y de imprimirla a la consola),
+"""
 class ColaDeListos:
     def __init__(self):
         self.filaSinPrioridades = []
@@ -97,6 +118,13 @@ class ColaDeListos:
                 self.fila.append(p)
 
 
+"""
+Definición de la clase de CPU
+
+Es una clase para aumentar el entendimiento de los componentes visualizados.
+Solo habrá una instancia de ella
+Solo tiene un atributo: el proceso que esta actualmente en el CPU(puede ser nulo si no hay)
+"""
 class CPU:
     def __init__(self):
         self.proceso = None
@@ -108,6 +136,15 @@ class CPU:
         self.proceso = None
 
 
+"""
+Definicion de la clase de ProcesosBloqueados
+
+
+Solo habrá una instancia de esta clase que represente
+la lista de procesos bloqueados por I/O.
+El único atributo es un arreglo de los procesos contenidos en ella.
+
+"""
 class ProcesosBloqueados:
     def __init__(self):
         self.procesos = []
@@ -134,6 +171,14 @@ class ProcesosBloqueados:
         return False
 
 
+"""
+Definición de la clase de ProcesosTerminados
+
+Igual que la clase de ProcesosBloqueados,
+pero solo contiene procesos que ya acabaron
+
+"""
+
 class ProcesosTerminados:
     def __init__(self):
         self.procesos = []
@@ -148,7 +193,9 @@ class ProcesosTerminados:
     def insertar(self, proceso):
         self.procesos.append(proceso)
 
-
+"""
+Método en donde se maneja un tipo de evento en el que llega/se crea un proceso nuevo
+"""
 def manejarLlegada(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_terminados):
     if cpu.proceso == None:
         evento.proceso.setTiempoLlegadaCPU(evento.tiempo)
@@ -156,6 +203,10 @@ def manejarLlegada(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_te
     else:
         cola_de_listos.insertar(evento.proceso)
 
+"""
+Método en donde se maneja un tipo de evento en el que acaba un proceso y
+pasa a procesos terminados
+"""
 def manejarAcaba(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_terminados):
     proceso = evento.proceso
     if cola_de_listos.estaProceso(proceso):
@@ -178,6 +229,10 @@ def manejarAcaba(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_term
             cpu.insertarProceso(proceso_siquiente)
     procesos_terminados.insertar(proceso)
 
+"""
+Método en donde se maneja un tipo de evento en el que un proceso empieza su I/O
+y pasa a los ProcesosBloqueados
+"""
 def manejarStartIO(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_terminados):
     ##Sacar procesos del CPU y ponerlo en la lista de procesos bloqueados
 
@@ -193,6 +248,11 @@ def manejarStartIO(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_te
         proceso_siquiente.setTiempoLlegadaCPU(evento.tiempo)
         cpu.insertarProceso(proceso_siquiente)
     ##Poner el procesos con mayor prioridad de la cola de listos en el cpu
+
+"""
+Método en donde se maneja un tipo de evento en el que un proceso termina su I/O
+y sale de la lista de bloqueados
+"""
 def manejarEndIO(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_terminados):
     if not procesos_bloqueados.estaProceso(evento.proceso):
         return
@@ -208,6 +268,10 @@ def manejarEndIO(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_term
         cola_de_listos.insertar(proceso_terminado_io)
 
 
+"""
+Método en donde se regresa la respuesta del simulador dependiendo del tipo de evento
+que se recibe.
+"""
 def obtenerRspuestaDelSimulador(evento):
     if evento.tipo == "Llegada":
         return "proceso " + evento.proceso.id + " creado"
@@ -220,6 +284,11 @@ def obtenerRspuestaDelSimulador(evento):
 
     return "Wut"
 
+"""
+Método en donde se imprime un renglon de una tabla
+con el estado de la cola de listos, el cpu, los procesos Bloqueados
+y terminados en el momento del time del evento
+"""
 def imprimirSnap(evento, snap_cola_de_listos, cpu, snap_bloqueados, snap_terminados):
     print(evento.texto)
     print("\t", obtenerRspuestaDelSimulador(evento=evento))
@@ -231,6 +300,10 @@ def imprimirSnap(evento, snap_cola_de_listos, cpu, snap_bloqueados, snap_termina
     table.add_rows(rows)
     print(table.draw())
 
+"""
+Un diccionario de funciones a la cuál se hará referencia dependiendo
+del tipo de evento que se está manejando
+"""
 manejadores = {
 'Llegada' : manejarLlegada,
 'Acaba' : manejarAcaba,
@@ -238,6 +311,17 @@ manejadores = {
 'EndI/O': manejarEndIO,
 'EndSimulacion': None
 }
+
+"""
+Función principal del algoritmo de First Come First Serve que
+recibe cómo parametro una arreglo de los renglones
+que se reciben en el archivo de entrada
+
+
+Se procesa cada evento y al final se imprime una tabla
+con el resumen de todos los eventos
+y un tabla con el resumen de todos los procesos
+"""
 
 def fcfs(lineas_de_archivo_de_entrada, quantum):
     line_index = 0
