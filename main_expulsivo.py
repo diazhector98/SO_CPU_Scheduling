@@ -40,10 +40,11 @@ class Proceso:
 class Evento:
     def __init__(self, texto, proceso):
         self.texto = texto
-        componentes = texto.split()
         self.proceso = None
+        self.tiempo = None
         self.tipo = None
-        if len(componentes) < 2:
+        componentes = texto.split()
+        if len(componentes) == 1:
             return
         self.tiempo = int(componentes[0])
         if componentes[1] == "Llega":
@@ -64,9 +65,7 @@ class Evento:
             self.tipo = "EndSimulacion"
             self.proceso = None
     def getProceso(self):
-        if self.proceso != None:
-            return self.proceso
-        return None
+        return self.proceso
 
 class ColaDeListos:
     def __init__(self):
@@ -83,8 +82,29 @@ class ColaDeListos:
         self.filaSinPrioridades.append(proceso)
         self.fila.put(proceso)
     def pop(self):
-        self.filaSinPrioridades.pop()
-        return self.fila.get()
+        proceso = self.fila.get()
+        for p in self.filaSinPrioridades:
+            if p == proceso:
+                self.filaSinPrioridades.remove(p)
+        return proceso
+    def estaProceso(self, proceso):
+        for p in self.filaSinPrioridades:
+            if p == proceso:
+                return True
+        return False
+    def quitarTodosLosProcesosDeLaColaPriorizada(self):
+        while not self.fila.empty():
+            self.fila.get(False)
+    def quitarProceso(self, proceso):
+        if self.estaProceso(proceso):
+            index = 0
+            while self.filaSinPrioridades[index] != proceso:
+                index += 1
+            self.filaSinPrioridades.pop(index)
+            self.quitarTodosLosProcesosDeLaColaPriorizada()
+            for p in self.filaSinPrioridades:
+                self.fila.put(p)
+
 
 class CPU:
     def __init__(self):
@@ -116,6 +136,11 @@ class ProcesosBloqueados:
         return None
     def removeProceso(self, proceso):
         self.procesos.remove(proceso)
+    def estaProceso(self, proceso):
+        for p in self.procesos:
+            if p == proceso:
+                return True
+        return False
 
 
 class ProcesosTerminados:
@@ -165,19 +190,33 @@ def manejarLlegada(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_te
             cola_de_listos.insertar(evento.proceso)
 
 def manejarAcaba(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_terminados):
-    proceso_terminado = cpu.getProceso()
-    proceso_terminado.setTiempoTerminaCPU(evento.tiempo)
-    proceso.setTiempoTerminacion(evento.tiempo)
-    cpu.sacarProceso()
-    if cola_de_listos.getFila().qsize() != 0:
-        proceso_siquiente = cola_de_listos.pop()
-        proceso_siquiente.setTiempoLlegadaCPU(evento.tiempo)
-        cpu.insertarProceso(proceso_siquiente)
-    procesos_terminados.insertar(proceso_terminado)
+    proceso = evento.proceso
+    if cola_de_listos.estaProceso(proceso):
+        print("Proceso acabado esta en Cola de Listos")
+        proceso.setTiempoTerminacion(evento.tiempo)
+        cola_de_listos.quitarProceso(proceso)
+    elif procesos_bloqueados.estaProceso(proceso):
+        print("Proceso acabado esta en procesos bloqueados(En I/0)")
+        proceso.setTiempoTerminacion(evento.tiempo)
+        proceso.setEndIO(evento.tiempo)
+        procesos_bloqueados.removeProceso(proceso_terminado_io)
+    else:
+        proceso_terminado = cpu.getProceso()
+        proceso_terminado.setTiempoTerminaCPU(evento.tiempo)
+        proceso.setTiempoTerminacion(evento.tiempo)
+        cpu.sacarProceso()
+        if cola_de_listos.getFila().qsize() != 0:
+            proceso_siquiente = cola_de_listos.pop()
+            proceso_siquiente.setTiempoLlegadaCPU(evento.tiempo)
+            cpu.insertarProceso(proceso_siquiente)
+    procesos_terminados.insertar(proceso)
 
 def manejarStartIO(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_terminados):
     ##Sacar procesos del CPU y ponerlo en la lista de procesos bloqueados
+
     proceso = cpu.getProceso()
+    if proceso != evento.proceso:
+        return
     proceso.setTiempoTerminaCPU(evento.tiempo)
     proceso.setStartIO(evento.tiempo)
     cpu.sacarProceso()
@@ -187,18 +226,29 @@ def manejarStartIO(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_te
         proceso_siquiente.setTiempoLlegadaCPU(evento.tiempo)
         cpu.insertarProceso(proceso_siquiente)
     ##Poner el procesos con mayor prioridad de la cola de listos en el cpu
-
 def manejarEndIO(evento, cola_de_listos, cpu, procesos_bloqueados, procesos_terminados):
+    if not procesos_bloqueados.estaProceso(evento.proceso):
+        return
     proceso_terminado_io = procesos_bloqueados.getProcesoConId(evento.proceso.id)
+    print("Proceso terminado: ", proceso_terminado_io.id)
     proceso_terminado_io.setEndIO(evento.tiempo)
     procesos_bloqueados.removeProceso(proceso_terminado_io)
     if cpu.getProceso() == None:
         #No hay proceso en el CPU
         proceso_terminado_io.setTiempoLlegadaCPU(evento.tiempo)
         cpu.insertarProceso(proceso_terminado_io)
+    elif cpu.getProceso().prioridad > proceso_terminado_io.prioridad:
+        #Si hay proceso en el cpu pero es de prioridad menor
+        proceso_en_cpu = cpu.getProceso()
+        proceso_en_cpu.setTiempoTerminaCPU(evento.tiempo)
+        cpu.sacarProceso()
+        cpu.insertarProceso(proceso_terminado_io)
+        proceso_terminado_io.setTiempoLlegadaCPU(evento.tiempo)
+        cola_de_listos.insertar(proceso_en_cpu)
     else:
-        #Si hay proceso en el cpu
+        #Si hay proceso en CPU, pero su prioridad es mayor, entonces se va a la cola de listos
         cola_de_listos.insertar(proceso_terminado_io)
+
 
 
 
@@ -222,6 +272,10 @@ procesos = []
 
 while line_index < len(lineas_de_archivo_de_entrada):
     linea = lineas_de_archivo_de_entrada[line_index]
+    print(linea)
+    procesoEnCpu =  cpu.getProceso()
+    ide = None if procesoEnCpu == None else procesoEnCpu.id
+    print(cola_de_listos.getFilaIDs(), ide, procesos_bloqueados.getListaIds())
     linea_componentes = linea.split()
     proceso_id = None
     proceso = None
@@ -233,9 +287,8 @@ while line_index < len(lineas_de_archivo_de_entrada):
 
     evento = Evento(texto=linea, proceso=proceso)
 
-    if proceso == None and evento.getProceso() != None:
+    if proceso == None:
         procesos.append(evento.getProceso())
-
     funcion = manejadores.get(evento.tipo)
     if funcion != None:
         funcion(evento=evento, cola_de_listos=cola_de_listos, cpu=cpu, procesos_bloqueados=procesos_bloqueados, procesos_terminados=procesos_terminados)
